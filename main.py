@@ -1,6 +1,10 @@
+import time
 import requests
 import selectorlib
 from time import gmtime, strftime
+import sqlite3
+
+connection = sqlite3.connect('data.db')
 
 URL = 'https://programmer100.pythonanywhere.com'
 HEADERS = {
@@ -8,6 +12,7 @@ HEADERS = {
                   '(KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
 
 
+# EXTRACT THE DATA FROM THE WEBSITE
 def scrape(url):
     """ Scrape the page source from the url """
     response = requests.get(url, headers=HEADERS)
@@ -21,18 +26,29 @@ def extract(source):
     return value
 
 
+# WRITE THE DATA TO THE SQL DATABASE
 def write_data(temperature):
-    """ Append temperature and datetime to text file """
-    time = strftime('%y-%m-%d-%H-%M-%S', gmtime())
+    time = strftime('%y-%m-%d,%H:%M:%S', gmtime())
+    date, time = time.split(',')
 
-    with open('data.txt', 'a') as f:
-        data = f.write(time + ',' + temperature + '\n')
+    print(f'Date: {date}')
+    print(f'Time: {time}')
+    print(f'Temperature: {temperature}')
+    print(f'---------------')
+    print()
+
+    cursor = connection.cursor()
+    cursor.execute("INSERT INTO temperature VALUES(?,?,?)", (date, temperature, time))
+    connection.commit()
 
 
+# EXECUTIVE FUNCTION, RUNS EVERY 5 SECONDS
 if __name__ == '__main__':
-    scraped = scrape(URL)
-    extracted = extract(scraped)
-    write_data(extracted)
+    while True:
+        scraped = scrape(URL)
+        extracted = extract(scraped)
+        write_data(extracted)
+        time.sleep(5)
 
 
 
